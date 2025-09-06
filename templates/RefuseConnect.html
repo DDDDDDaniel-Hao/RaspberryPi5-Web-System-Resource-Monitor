@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Refuse Connect</title>
+    <style>
+        :root {
+            --bg-primary: #f8f9fa;
+            --text-primary: #212529;
+            --text-secondary: #6c757d;
+            --quote-border: #adb5bd;
+            --transition-time: 0.3s;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-primary: #1a1d20;
+                --text-primary: #e9ecef;
+                --text-secondary: #adb5bd;
+                --quote-border: #6c757d;
+            }
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+            transition: background-color var(--transition-time) ease, color var(--transition-time) ease;
+            position: relative;
+        }
+
+        .container {
+            max-width: 800px;
+            width: 100%;
+            text-align: left;
+        }
+
+        header {
+            margin-bottom: 2rem;
+        }
+
+        h1 {
+            font-weight: 600;
+            font-size: 5rem;
+            color: var(--text-primary);
+            letter-spacing: -0.02em;
+            line-height: 1.1;
+            margin-left: -0.1rem;
+            margin-top: -8rem;
+        }
+
+        .quote {
+            border-left: 4px solid var(--quote-border);
+            padding-left: 1.8rem;
+            margin: 2rem 0;
+            color: var(--text-secondary);
+            font-size: 1.2rem;
+            line-height: 1.7;
+            position: relative;
+        }
+
+        .footer {
+            position: absolute;
+            bottom: 2rem;
+            left: 0;
+            right: 0;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            text-align: center;
+            opacity: 0.8;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 1.5rem;
+                justify-content: flex-start;
+                padding-top: 10vh;
+            }
+
+            h1 {
+                font-size: 3.5rem;
+            }
+
+            .quote {
+                font-size: 1.1rem;
+                padding-left: 1.5rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 2.8rem;
+            }
+
+            .quote {
+                font-size: 1rem;
+                padding-left: 1.2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Refuse Connect</h1>
+        </header>
+
+        <main>
+            <blockquote class="quote">
+                There is another connection. If you want to connect, close the previous connection.
+            </blockquote>
+        </main>
+    </div>
+
+    <footer class="footer">
+        <p>Web monitor</p>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Resource Monitor</title>
+    <script src="/static/js/chart.js"></script>
+    <style>
+        :root {
+            --bg-primary: #f5f7fb;
+            --bg-secondary: #e8ecf1;
+            --card-bg: rgba(255, 255, 255, 0.9);
+            --text-primary: #333;
+            --text-secondary: #7f8c8d;
+            --header-color: #2c3e50;
+            --shadow-color: rgba(0, 0, 0, 0.08);
+            --current-value-bg: #f1f5f9;
+            --chart-grid: rgba(0, 0, 0, 0.05);
+            --status-connected: #4CAF50;
+            --status-disconnected: #F44336;
+        }
+
+        [data-theme="dark"] {
+            --bg-primary: #1a1c23;
+            --bg-secondary: #12141b;
+            --card-bg: rgba(30, 32, 40, 0.9);
+            --text-primary: #e6e6e6;
+            --text-secondary: #a0a0a0;
+            --header-color: #d0d0d0;
+            --shadow-color: rgba(0, 0, 0, 0.3);
+            --current-value-bg: #2a2d36;
+            --chart-grid: rgba(255, 255, 255, 0.05);
+            --status-connected: #4CAF50;
+            --status-disconnected: #F44336;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            transition: background 0.3s ease, color 0.3s ease;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 4px 12px var(--shadow-color);
+            max-width: 1200px;
+            margin-left: auto;
+            margin-right: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        .header h1 {
+            color: var(--header-color);
+            margin-bottom: 8px;
+            font-size: 2.2rem;
+        }
+        .header p {
+            color: var(--text-secondary);
+            margin-top: 0;
+            font-size: 1.1rem;
+        }
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 15px;
+            margin-bottom: 15px;
+        }
+        .controls button {
+            background: #292929;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 2s ease;
+        }
+        [data-theme="dark"] .controls button {
+            background: #d1d1d1;
+            color: black;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 2s ease;
+        }
+        .controls button:hover {
+            background: #000000;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0px 0px 60px rgba(0, 0, 0, 1);
+        }
+        [data-theme="dark"] .controls button:hover {
+            background: #ffffff;
+            color: black;
+            box-shadow: 0px 0px 60px rgba(255, 255, 255, 1);
+        }
+        .theme-toggle {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1.5rem;
+            color: var(--text-secondary);
+            transition: transform 0.3s ease;
+        }
+        .theme-toggle:hover {
+            transform: rotate(30deg);
+        }
+        .flex-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+        .chart-container {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 6px 16px var(--shadow-color);
+            padding: 20px;
+            flex: 1 1 calc(50% - 40px);
+            min-width: 350px;
+            max-width: calc(50% - 20px);
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            min-height: 380px;
+        }
+        .chart-container:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px var(--shadow-color);
+        }
+        .chart-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--header-color);
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .current-value {
+            font-size: 14px;
+            color: var(--text-secondary);
+            background: var(--current-value-bg);
+            padding: 6px 12px;
+            border-radius: 15px;
+            font-weight: 500;
+        }
+        .canvas-wrapper {
+            position: relative;
+            flex-grow: 1;
+            min-height: 300px;
+            max-height: 600px;
+            height: 300px;
+        }
+        canvas {
+            width: 100% !important;
+            height: 100% !important;
+        }
+        @media (min-width: 1400px) {
+            .chart-container {
+                flex: 1 1 calc(33.333% - 40px);
+                min-width: calc(30% - 20px);
+                max-width: calc(40% - 20px);
+            }
+        }
+        @media (min-width: 1800px) {
+            .chart-container {
+                flex: 1 1 calc(25% - 40px);
+                min-width: calc(30% - 20px);
+                max-width: calc(40% - 20px);
+            }
+        }
+        @media (max-width: 1200px) {
+            .chart-container {
+                flex: 1 1 calc(50% - 40px);
+                min-width: calc(40% - 40px);
+                max-width: calc(60% - 20px);
+            }
+            .canvas-wrapper {
+                height: 280px;
+            }
+        }
+        @media (max-width: 768px) {
+            .chart-container {
+                flex: 1 1 100%;
+                max-width: 100%;
+            }
+            .canvas-wrapper {
+                height: 250px;
+            }
+            .controls {
+                flex-direction: column;
+                align-items: center;
+            }
+            .controls button {
+                width: 100%;
+                max-width: 250px;
+            }
+            .header-top {
+                flex-direction: column;
+                gap: 15px;
+            }
+        }
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .status-connected {
+            background-color: var(--status-connected);
+        }
+        .status-disconnected {
+            background-color: var(--status-disconnected);
+        }
+        .info {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 5px;
+            text-align: right;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Web monitor</h1>
+        <div class="controls">
+            <button id="theme-toggle">Dark mode</button>
+        </div>
+        <p> <span id="connection-status"><span class="status-indicator status-connected"></span>Connected</span></p>
+    </div>
+    <div class="flex-container">
+        <div class="chart-container">
+            <div class="chart-title">
+                <span>CPU Usage</span>
+                <span id="cpu-value" class="current-value">0%</span>
+            </div>
+            <div id="temperature-cpu" class="info">Temperature: 0℃</div>
+            <div class="canvas-wrapper">
+                <canvas id="cpu"></canvas>
+            </div>
+        </div>
+        <div class="chart-container">
+            <div class="chart-title">
+                <span>GPU Usage</span>
+                <span id="gpu-value" class="current-value">0%</span>
+            </div>
+            <div id="temperature-gpu" class="info">Temperature: 0℃</div>
+            <div class="canvas-wrapper">
+                <canvas id="gpu"></canvas>
+            </div>
+        </div>
+        <div class="chart-container">
+            <div class="chart-title">
+                <span>Memory Usage</span>
+                <span id="mem-value" class="current-value">0 GB</span>
+            </div>
+            <div id="mem-total" class="info">Total: 0 GB</div>
+            <div class="canvas-wrapper">
+                <canvas id="mem"></canvas>
+            </div>
+        </div>
+        <div class="chart-container">
+            <div class="chart-title">
+                <span>Swap Usage</span>
+                <span id="swp-value" class="current-value">0 GB</span>
+            </div>
+            <div id="swp-total" class="info">Total: 0 GB</div>
+            <div class="canvas-wrapper">
+                <canvas id="swp"></canvas>
+            </div>
+        </div>
+        <div class="chart-container">
+            <div class="chart-title">
+                <span>Disk Read</span>
+                <span id="disk-read-value" class="current-value">0 MB/s</span>
+            </div>
+            <div id="disk-read.disk-usage" class="info">Usage:  0GB/  0GB</div>
+            <div class="canvas-wrapper">
+                <canvas id="disk-read"></canvas>
+            </div>
+        </div>
+        <div class="chart-container">
+            <div class="chart-title">
+                <span>Disk Write</span>
+                <span id="disk-write-value" class="current-value">0 MB/s</span>
+            </div>
+            <div id="disk-write.disk-usage" class="info">Usage:  0GB/  0GB</div>
+            <div class="canvas-wrapper">
+                <canvas id="disk-write"></canvas>
+            </div>
+        </div>
+        <div class="chart-container">
+            <div class="chart-title">
+                <span>Network Receive</span>
+                <span id="net-receive-value" class="current-value">0 MB/s</span>
+            </div>
+            <div class="canvas-wrapper">
+                <canvas id="net-receive"></canvas>
+            </div>
+        </div>
+        <div class="chart-container">
+            <div class="chart-title">
+                <span>Network Send</span>
+                <span id="net-send-value" class="current-value">0 MB/s</span>
+            </div>
+            <div class="canvas-wrapper">
+                <canvas id="net-send"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="footer">
+        <p>Monitoring dashboard</p>
+    </div>
+    <script>
+        const themeToggle = document.getElementById('theme-toggle');
+        const prefersDarkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+
+        let currentTheme = localStorage.getItem('theme') || (prefersDarkScheme.matches ? 'dark' : 'light');
+
+        function setTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            localStorage.setItem('theme', theme);
+            themeToggle.textContent = theme === 'dark' ? 'Light mode' : 'Dark mode';
+        }
+
+        function toggleTheme() {
+            currentTheme = currentTheme === 'light' ? 'dark' : 'light';
+            setTheme(currentTheme);
+            updateChartColors();
+        }
+
+        setTheme(currentTheme);
+        themeToggle.addEventListener('click', toggleTheme);
+
+        prefersDarkScheme.addEventListener('change', e => {
+            if (!localStorage.getItem('theme')) {
+                currentTheme = e.matches ? 'dark' : 'light';
+                setTheme(currentTheme);
+                updateChartColors();
+            }
+        });
+
+        function formatBytes(bytes, decimals = 2, isSpeed = false) {
+            if (bytes === 0) return isSpeed ? '0 B/s' : '0 B';
+
+            const k = 1024;
+            const dm = decimals < 0 ? 0 : decimals;
+            const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            const formattedValue = parseFloat((bytes / Math.pow(k, i)).toFixed(dm));
+
+            return isSpeed ? `${formattedValue} ${sizes[i]}/s` : `${formattedValue} ${sizes[i]}`;
+        }
+
+        class LineChart {
+            constructor(canvasId, label, unit, maxValue = null, adaptiveScaling = false, isByteData = false) {
+                this.canvas = document.getElementById(canvasId);
+                this.ctx = this.canvas.getContext('2d');
+                this.history = [];
+                this.maxDataPoints = 20;
+                this.unit = unit;
+                this.maxValue = maxValue;
+                this.adaptiveScaling = adaptiveScaling;
+                this.isByteData = isByteData;
+                this.currentMax = maxValue || 10;
+
+                this.chart = new Chart(this.ctx, {
+                    type: 'line',
+                    data: {
+                        labels: Array(this.maxDataPoints).fill(''),
+                        datasets: [{
+                            label: label,
+                            data: [],
+                            borderColor: this.getChartColor(canvasId),
+                            backgroundColor: this.getBackgroundColor(canvasId),
+                            tension: 0.3,
+                            fill: true,
+                            pointBackgroundColor: this.getChartColor(canvasId),
+                            pointBorderColor: '#fff',
+                            pointRadius: 3,
+                            pointHoverRadius: 6,
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: this.currentMax,
+                                grid: {
+                                    color: currentTheme === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)'
+                                },
+                                ticks: {
+                                    color: currentTheme === 'dark' ? '#a0a0a0' : '#666',
+                                    callback: (value) => {
+                                        // 字节数据自适应单位
+                                        if (this.isByteData) {
+                                            return formatBytes(value, 1, this.unit.includes('/s'));
+                                        }
+
+                                        // 处理非字节数据的单位转换
+                                        if (this.unit === ' KB/s' && value >= 1000) {
+                                            return (value / 1000).toFixed(1) + ' MB/s';
+                                        }
+                                        if (this.unit === ' MB/s' && value >= 1000) {
+                                            return (value / 1000).toFixed(1) + ' GB/s';
+                                        }
+                                        return value + this.unit;
+                                    }
+                                }
+                            },
+                            x: {
+                                grid: {
+                                    display: false
+                                },
+                                ticks: {
+                                    display: false
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                mode: 'index',
+                                intersect: false,
+                                callbacks: {
+                                    label: (context) => {
+                                        let value = context.parsed.y;
+
+                                        if (this.isByteData) {
+                                            return `${context.dataset.label}: ${formatBytes(value, 2, this.unit.includes('/s'))}`;
+                                        }
+
+                                        let unit = this.unit;
+                                        if (this.unit === ' KB/s' && value >= 1000) {
+                                            value = (value / 1000).toFixed(2);
+                                            unit = ' MB/s';
+                                        }
+                                        if (this.unit === ' MB/s' && value >= 1000) {
+                                            value = (value / 1000).toFixed(2);
+                                            unit = ' GB/s';
+                                        }
+                                        return `${context.dataset.label}: ${value}${unit}`;
+                                    }
+                                }
+                            }
+                        },
+                        animation: {
+                            duration: 500
+                        }
+                    }
+                });
+                this.addResizeObserver();
+            }
+
+            getChartColor(id) {
+                const colors = {
+                    'cpu': '#FF6384',
+                    'gpu': '#36A2EB',
+                    'mem': '#4BC0C0',
+                    'swp': '#4BEED6',
+                    'disk-read': '#FF9F40',
+                    'disk-write': '#FFCD56',
+                    'net-receive': '#9966FF',
+                    'net-send': '#CC51FF'
+                };
+                return colors[id] || '#36A2EB';
+            }
+
+            getBackgroundColor(id) {
+                const colors = {
+                    'cpu': 'rgba(255, 99, 132, 0.2)',
+                    'gpu': 'rgba(54, 162, 235, 0.2)',
+                    'mem': 'rgba(75, 192, 192, 0.2)',
+                    'disk-read': 'rgba(255, 159, 64, 0.2)',
+                    'disk-write': 'rgba(255, 205, 86, 0.2)',
+                    'net-receive': 'rgba(153, 102, 255, 0.2)',
+                    'net-send': 'rgba(204, 81, 255, 0.2)'
+                };
+                return colors[id] || 'rgba(54, 162, 235, 0.2)';
+            }
+
+            addDataPoint(value) {
+                this.history.push(value);
+
+                if (this.history.length > this.maxDataPoints) {
+                    this.history.shift();
+                }
+
+                if (this.adaptiveScaling) {
+                    this.updateMaxValue();
+                }
+
+                this.updateChart();
+
+                const elementId = `${this.canvas.id}-value`;
+                if (document.getElementById(elementId)) {
+                    let displayText;
+
+                    if (this.isByteData) {
+                        displayText = formatBytes(value, 2, this.unit.includes('/s'));
+                    } else {
+                        let displayValue = value;
+                        let displayUnit = this.unit;
+
+                        if (this.unit === ' MB/s' && value >= 1000) {
+                            displayValue = (value / 1000).toFixed(1);
+                            displayUnit = ' GB/s';
+                        }
+
+                        displayText = `${displayValue}${displayUnit}`;
+                    }
+
+                    document.getElementById(elementId).textContent = displayText;
+                }
+            }
+
+            updateMaxValue() {
+                const currentMax = Math.max(...this.history);
+
+                if (currentMax > this.currentMax * 0.8) {
+                    this.currentMax = Math.ceil(currentMax * 1.2);
+                }
+                else if (currentMax < this.currentMax * 0.4 && this.currentMax > 10) {
+                    this.currentMax = Math.max(10, Math.floor(currentMax * 1.5));
+                }
+
+                this.chart.options.scales.y.max = this.currentMax;
+            }
+
+            updateChart() {
+                this.chart.data.datasets[0].data = [...this.history];
+                this.chart.update('none');
+            }
+
+            reset() {
+                this.history = [];
+                if (this.adaptiveScaling) {
+                    this.currentMax = 10;
+                    this.chart.options.scales.y.max = this.currentMax;
+                }
+                this.updateChart();
+                const elementId = `${this.canvas.id}-value`;
+                if (document.getElementById(elementId)) {
+                    if (this.isByteData) {
+                        document.getElementById(elementId).textContent =
+                            this.unit.includes('/s') ? '0 B/s' : '0 B';
+                    } else {
+                        document.getElementById(elementId).textContent = `0${this.unit}`;
+                    }
+                }
+            }
+
+            addResizeObserver() {
+                if (typeof ResizeObserver !== 'undefined') {
+                    const observer = new ResizeObserver(() => {
+                        setTimeout(() => {
+                            this.chart.resize();
+                        }, 100);
+                    });
+                    observer.observe(this.canvas.parentElement);
+                }
+            }
+
+            setMaxValue(value) {
+                this.currentMax = value;
+                this.chart.options.scales.y.max = value;
+                this.chart.update('none');
+            }
+
+            updateTheme() {
+                this.chart.options.scales.y.grid.color = currentTheme === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)';
+                this.chart.options.scales.y.ticks.color = currentTheme === 'dark' ? '#a0a0a0' : '#666';
+                this.chart.update('none');
+            }
+        }
+
+        const cpuChart = new LineChart('cpu', 'CPU Usage', '%', 100);
+        const gpuChart = new LineChart('gpu', 'GPU Clock', 'MHz', 1000);
+        const memChart = new LineChart('mem', 'Memory Usage', ' GB', 8, false);
+        const swpChart = new LineChart('swp', 'Swap Usage', ' GB', 2, false);
+        const diskReadChart = new LineChart('disk-read', 'Disk Read', '/s', null, true, true);
+        const diskWriteChart = new LineChart('disk-write', 'Disk Write', '/s', null, true, true);
+        const netReceiveChart = new LineChart('net-receive', 'Network Receive', '/s', null, true, true);
+        const netSendChart = new LineChart('net-send', 'Network Send', '/s', null, true, true);
+
+        function updateChartColors() {
+            cpuChart.updateTheme();
+            gpuChart.updateTheme();
+            memChart.updateTheme();
+            swpChart.updateTheme();
+            diskReadChart.updateTheme();
+            diskWriteChart.updateTheme();
+            netReceiveChart.updateTheme();
+            netSendChart.updateTheme();
+        }
+
+        function initializeCharts() {
+            cpuChart.addDataPoint(0);
+            gpuChart.addDataPoint(0);
+            memChart.addDataPoint(0);
+            swpChart.addDataPoint(0);
+            diskReadChart.addDataPoint(0);
+            diskWriteChart.addDataPoint(0);
+            netReceiveChart.addDataPoint(0);
+            netSendChart.addDataPoint(0);
+        }
+
+        //fetch data from back-end
+        async function fetchData() {
+            try {
+                const response = await fetch('/Data');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+
+                document.getElementById('connection-status').innerHTML =
+                    '<span class="status-indicator status-connected"></span>Connected';
+
+                return {
+                    cpu: data.cpuUsage,
+                    gpu: data.gpuUsage,
+                    mem: data.memUsage,
+                    swp: data.swpUsage,
+                    memTotal: data.memTotal,
+                    swpTotal: data.swpTotal,
+                    diskRead: data.diskRead,
+                    diskWrite: data.diskWrite,
+                    diskTotal: data.diskTotal,
+                    diskUsed: data.diskUsed,
+                    netReceive: data.netReceive,
+                    netSend: data.netSend,
+                    temperature: data.temperature
+                };
+            } catch (error) {
+                console.error('Error fetching data:', error);
+
+                document.getElementById('connection-status').innerHTML =
+                    '<span class="status-indicator status-disconnected"></span>Disconnected';
+
+                return null;
+            }
+        }
+
+        let isPaused = false;
+        let updateInterval;
+        let errorCount = 0;
+        const MAX_ERRORS = 5;
+        let memTotalSet = false;
+
+        function startUpdating() {
+            updateInterval = setInterval(async () => {
+                if (!isPaused) {
+                    const data = await fetchData();
+
+                    if (data) {
+                        errorCount = 0; // 重置错误计数
+                        cpuChart.addDataPoint(data.cpu);
+                        gpuChart.addDataPoint(data.gpu);
+                        memChart.addDataPoint(data.mem);
+                        swpChart.addDataPoint(data.swp);
+                        diskReadChart.addDataPoint(data.diskRead);
+                        diskWriteChart.addDataPoint(data.diskWrite);
+                        netReceiveChart.addDataPoint(data.netReceive);
+                        netSendChart.addDataPoint(data.netSend);
+                        const formatTemperature = (temp) => (temp < 10 ? ' ' : '') + `${temp} ℃`;
+                        document.getElementById('temperature-cpu').textContent = `Temperature:${formatTemperature(data.temperature)}`;
+                        document.getElementById('temperature-gpu').textContent = `Temperature:${formatTemperature(data.temperature)}`;
+                        document.getElementById('disk-read.disk-usage').textContent = `Usage: ${formatBytes(data.diskUsed)}/${formatBytes(data.diskTotal)}`
+                        document.getElementById('disk-write.disk-usage').textContent = `Usage: ${formatBytes(data.diskUsed)}/${formatBytes(data.diskTotal)}`
+
+                        if (!memTotalSet && data.memTotal) {
+                            memChart.setMaxValue(data.memTotal);
+                            swpChart.setMaxValue(data.swpTotal)
+                            document.getElementById('mem-total').textContent = `Total: ${data.memTotal} GB`;
+                            document.getElementById('swp-total').textContent = `Total: ${data.swpTotal} GB`;
+                            memTotalSet = true;
+                        }
+                    } else {
+                        errorCount++;
+
+
+                        if (errorCount >= MAX_ERRORS) {
+                            isPaused = true;
+                            document.getElementById('pause-btn').textContent = 'Resume';
+                            alert('Failed to fetch data multiple times. Updates paused.');
+                        }
+                    }
+                }
+            }, 1000);
+        }
+
+        initializeCharts();
+        startUpdating();
+
+        document.getElementById('pause-btn').addEventListener('click', function() {
+            isPaused = !isPaused;
+            this.textContent = isPaused ? 'Resume' : 'Pause';
+
+            if (!isPaused) {
+                errorCount = 0;
+            }
+        });
+
+        document.getElementById('reset-btn').addEventListener('click', function() {
+            cpuChart.reset();
+            gpuChart.reset();
+            memChart.reset();
+            swpChart.reset();
+            diskReadChart.reset();
+            diskWriteChart.reset();
+            netReceiveChart.reset();
+            netSendChart.reset();
+
+            memTotalSet = false;
+            document.getElementById('mem-total').textContent = 'Total: 0 GB';
+            document.getElementById('swp-total').textContent = 'Total: 0 GB';
+        });
+
+        let resizeTimeout;
+        window.addEventListener('resize', function() {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(function() {
+                cpuChart.chart.resize();
+                gpuChart.chart.resize();
+                memChart.chart.resize();
+                swpChart.chart.resize();
+                diskReadChart.chart.resize();
+                diskWriteChart.chart.resize();
+                netReceiveChart.chart.resize();
+                netSendChart.chart.resize();
+            }, 250);
+        });
+    </script>
+</body>
+</html>
